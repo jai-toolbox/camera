@@ -13,7 +13,7 @@ Camera :: struct {
     yaw, pitch : float;
     world_to_camera := Matrix4_Identity;
     camera_to_clip := Matrix4_Identity;
-    fov := 60.0;
+    fov := 90.0;
 
     last_mouse_x, last_mouse_y : int;
 
