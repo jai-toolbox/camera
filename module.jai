@@ -37,7 +37,7 @@ get_rotation :: (using camera : *Camera) -> Quaternion {
     yaw_quat, pitch_quat: Quaternion;
 
     // I am not sure why I need to invert the axis of rotation...
-    // probably because of the rotation direction.
+    // probably because of the rotation direction and right hand rule, look into later, inverting so it works.
 
     set_from_axis_and_angle (*yaw_quat, 0, -1, 0, yaw);
     set_from_axis_and_angle (*pitch_quat, -1, 0, 0, pitch);
@@ -60,6 +60,6 @@ update_matrices :: (using camera : *Camera, window_width: int, window_height: in
     aspect_ratio := window_width / cast (float) window_width;
 
     // NOTE this matrix makes -z forward, which is bad and I want to change it later on, this explains the note of (1) 
-    // if this used z forward, then we'd undo what was done @ (1)
+    // if this used z forward, then we'd undo what was done @ (1) 
     camera_to_clip = make_projection_matrix (fov * PI / 180.0, aspect_ratio, 0.1, 1000.0);
 }
