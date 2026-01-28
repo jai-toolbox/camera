@@ -25,7 +25,7 @@ update_angles :: (using camera : *Camera, mouse_x: int, mouse_y: int) {
     last_mouse_x = mouse_x; last_mouse_y = mouse_y;
     yaw += mouse_delta_x * PI / 180.0;
     pitch += mouse_delta_y * PI / 180.0;
-    pitch = clamp (pitch, -80.0  * PI / 180.0, 80.0 * PI / 180.0);
+    pitch = clamp (pitch, -89.0  * PI / 180.0, 89.0 * PI / 180.0);
 }
 
 get_forward :: (camera : *Camera) -> Vector3 {
