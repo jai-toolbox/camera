@@ -11,12 +11,11 @@ Camera :: struct {
     position : Vector3;
     offset : Vector3; // when you want to have some constant offset such as "eyes pos"
     yaw, pitch : float;
+    // is there ever a reason to be storing these in here? probably not and I should get rid of it later on.
     world_to_camera := Matrix4_Identity;
     camera_to_clip := Matrix4_Identity;
     fov := 90.0;
-
     last_mouse_x, last_mouse_y : int;
-
 };
 
 update_angles :: (using camera : *Camera, mouse_x: int, mouse_y: int) {
