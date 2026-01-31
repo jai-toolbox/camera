@@ -1,7 +1,7 @@
 #import "Math";
 #import "Basic";
 
-#import "math";
+#import "tbx_math";
 
 // world space is where the origin is at (0, 0, 0) with axes defined by x = (1, 0, 0), y, z
 // camera space is where the origin is at the camera's position with axes defined by the cameras look direction
