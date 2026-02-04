@@ -34,6 +34,7 @@ update_angles_with_deltas :: (using camera : *Camera, mouse_delta_x: int, mouse_
 }
 
 
+// returns a normalized vector since Z3 is
 get_forward :: (camera : *Camera) -> Vector3 {
     raw_forward := -Z3;
     return rotate(raw_forward, get_rotation(camera));
