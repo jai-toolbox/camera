@@ -27,9 +27,9 @@ update_angles :: (using camera : *Camera, mouse_x: int, mouse_y: int, sensitivit
     pitch = clamp (pitch, -89.0  * PI / 180.0, 89.0 * PI / 180.0);
 }
 
-update_angles_with_deltas :: (using camera : *Camera, mouse_delta_x: int, mouse_delta_y: int) {
-    yaw += mouse_delta_x * PI / 180.0;
-    pitch += mouse_delta_y * PI / 180.0;
+update_angles_with_deltas :: (using camera : *Camera, mouse_delta_x: int, mouse_delta_y: int, sensitivity: float = 1) {
+    yaw += mouse_delta_x * PI / 180.0 * sensitivity;
+    pitch += mouse_delta_y * PI / 180.0 * sensitivity;
     pitch = clamp (pitch, -89.0  * PI / 180.0, 89.0 * PI / 180.0);
 }
 
