@@ -18,9 +18,9 @@ Camera :: struct {
     last_mouse_x, last_mouse_y : int;
 };
 
-update_angles :: (using camera : *Camera, mouse_x: int, mouse_y: int) {
-    mouse_delta_x := mouse_x - last_mouse_x;
-    mouse_delta_y := mouse_y - last_mouse_y;
+update_angles :: (using camera : *Camera, mouse_x: int, mouse_y: int, sensitivity: float = 1) {
+    mouse_delta_x : float = (mouse_x - last_mouse_x) * sensitivity;
+    mouse_delta_y : float = (mouse_y - last_mouse_y) * sensitivity;
     last_mouse_x = mouse_x; last_mouse_y = mouse_y;
     yaw += mouse_delta_x * PI / 180.0;
     pitch += mouse_delta_y * PI / 180.0;
