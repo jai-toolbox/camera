@@ -10,10 +10,16 @@
 Camera :: struct {
     position : Vector3;
     offset : Vector3; // when you want to have some constant offset such as "eyes pos"
-    yaw, pitch : float;
+
+    // todo in the future lets use turns here because turns are nicer.
+    yaw, pitch : float; 
+
+    sensitivity : float = 1;
+
     // is there ever a reason to be storing these in here? probably not and I should get rid of it later on.
     world_to_camera := Matrix4_Identity;
     camera_to_clip := Matrix4_Identity;
+
     fov := 90.0;
     last_mouse_x, last_mouse_y : int;
 };
@@ -27,10 +33,14 @@ update_angles :: (using camera : *Camera, mouse_x: int, mouse_y: int, sensitivit
     pitch = clamp (pitch, -89.0  * PI / 180.0, 89.0 * PI / 180.0);
 }
 
-update_angles_with_deltas :: (using camera : *Camera, mouse_delta_x: int, mouse_delta_y: int, sensitivity: float = 1) {
-    yaw += mouse_delta_x * PI / 180.0 * sensitivity;
-    pitch += mouse_delta_y * PI / 180.0 * sensitivity;
-    pitch = clamp (pitch, -89.0  * PI / 180.0, 89.0 * PI / 180.0);
+update_angles_with_deltas :: (using camera : *Camera, mouse_delta_x: int, mouse_delta_y: int, sensitivity_override: float = -1) {
+
+    sensitivity_to_use : float = ifx sensitivity_override != -1 then sensitivity_override else sensitivity;
+    
+    yaw += mouse_delta_x * PI / 180.0 * sensitivity_to_use;
+    pitch += mouse_delta_y * PI / 180.0 * sensitivity_to_use;
+
+    pitch = clamp (pitch, -89.9  * PI / 180.0, 89.9 * PI / 180.0);
 }
 
 
@@ -64,7 +74,7 @@ update_matrices :: (using camera : *Camera, window_width: int, window_height: in
     // we have to move everything the opposite way that we are going.
     camera.world_to_camera = inverse(transform);
 
-    aspect_ratio := window_width / cast (float) window_width;
+    aspect_ratio := window_width / cast (float) window_height;
 
     // NOTE this matrix makes -z forward, which is bad and I want to change it later on, this explains the note of (1) 
     // if this used z forward, then we'd undo what was done @ (1) 
