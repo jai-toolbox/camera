@@ -24,9 +24,11 @@ Camera :: struct {
     last_mouse_x, last_mouse_y : int;
 };
 
-update_angles :: (using camera : *Camera, mouse_x: int, mouse_y: int, sensitivity: float = 1) {
-    mouse_delta_x : float = (mouse_x - last_mouse_x) * sensitivity;
-    mouse_delta_y : float = (mouse_y - last_mouse_y) * sensitivity;
+update_angles :: (using camera : *Camera, mouse_x: int, mouse_y: int, sensitivity_override: float = 1) {
+
+    sensitivity_to_use : float = ifx sensitivity_override != -1 then sensitivity_override else sensitivity;
+    mouse_delta_x : float = (mouse_x - last_mouse_x) * sensitivity_to_use;
+    mouse_delta_y : float = (mouse_y - last_mouse_y) * sensitivity_to_use;
     last_mouse_x = mouse_x; last_mouse_y = mouse_y;
     yaw += mouse_delta_x * PI / 180.0;
     pitch += mouse_delta_y * PI / 180.0;
