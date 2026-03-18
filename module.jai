@@ -52,6 +52,16 @@ get_forward :: (camera : *Camera) -> Vector3 {
     return rotate(raw_forward, get_rotation(camera));
 }
 
+get_right :: (camera : *Camera) -> Vector3 {
+    raw_right := X3;
+    return rotate(raw_right, get_rotation(camera));
+}
+
+get_up :: (camera : *Camera) -> Vector3 {
+    raw_up := Y3;
+    return rotate(raw_up, get_rotation(camera));
+}
+
 get_rotation :: (using camera : *Camera) -> Quaternion {
     yaw_quat, pitch_quat: Quaternion;
 
