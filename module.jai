@@ -45,6 +45,16 @@ update_angles_with_deltas :: (using camera : *Camera, mouse_delta_x: int, mouse_
     pitch = clamp (pitch, -89.9  * PI / 180.0, 89.9 * PI / 180.0);
 }
 
+// https://toolbox.cuppajoeman.com/programming/game_dev/fov_and_sensitivity.html
+compute_new_sensitivity :: (original_sensitivity: float, original_fov: float, new_fov: float) -> float {
+    original_fov_rad := original_fov * (PI / 180.0);
+    new_fov_rad := new_fov * (PI / 180.0);
+
+    tan_half_original_fov := tan(original_fov_rad / 2.0);
+    tan_half_new_fov := tan(new_fov_rad / 2.0);
+
+    return original_sensitivity * (tan_half_new_fov / tan_half_original_fov);
+}
 
 // returns a normalized vector since Z3 is
 get_forward :: (camera : *Camera) -> Vector3 {
