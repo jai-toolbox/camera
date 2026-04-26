@@ -95,7 +95,11 @@ get_world_to_camera_matrix :: (using camera : *Camera) -> Matrix4 {
     // picture. Now suppose the camera is an immovable object, if we want the same effect, then for every object in the scene we need to move it left instead of right.
     // This explains why we must invert the transform here, the camera is immovable (it just sits in the center of the [-1, 1]^3 cube), thus to create the illusion of movement
     // we have to move everything the opposite way that we are going.
-    return inverse(transform);
+
+    // is it always possible to invert?
+    able_to_invert, inverse := inverse(transform);
+
+    return inverse;
 }
 
 get_projection_matrix :: (using camera : *Camera, window_width : int, window_height : int) -> Matrix4 {
