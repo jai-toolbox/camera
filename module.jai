@@ -7,7 +7,7 @@
 // small epsilon to stay away from the gimbal lock singularity at exactly 1/4 turn
 PITCH_EPSILON :: 0.001;
 
-PIXELS_PER_TURN : float : 2048;
+PIXELS_PER_TURN : float : 16384; 
 
 // world space is where the origin is at (0, 0, 0) with axes defined by x = (1, 0, 0), y, z
 // camera space is where the origin is at the camera's position with axes defined by the cameras look direction
