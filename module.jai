@@ -21,10 +21,6 @@ Camera :: struct {
 
     sensitivity : float = 1;
 
-    // is there ever a reason to be storing these in here? probably not and I should get rid of it later on.
-    // world_to_camera := Matrix4_Identity;
-    // camera_to_clip := Matrix4_Identity;
-
     fov : float = ONE_QUARTER_TURN;
     last_mouse_x, last_mouse_y : int;
 };
