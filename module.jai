@@ -9,15 +9,22 @@ PITCH_EPSILON :: 0.001;
 
 PIXELS_PER_TURN : float : 16384; 
 
-// world space is where the origin is at (0, 0, 0) with axes defined by x = (1, 0, 0), y, z
-// camera space is where the origin is at the camera's position with axes defined by the cameras look direction
-// clip space is a unit cube [-1, 1]^3 where anything outide gets "clipped" out, and not rendered.
-// matrices can represent "change of bases" where we can take a vector written wrt to one basis and write it in the second basis
+/*
+
+link to toolbox article about "whats up"
+
+*/
+
+
 Camera :: struct {
     position : Vector3;
     offset : Vector3; // when you want to have some constant offset such as "eyes pos"
 
     yaw, pitch : float; // in turns
+    
+    // world up allows us to allow this camera to work in different rendering
+    // systems where gravitational up is bound to a different axis.
+    world_up: Vector3 = Y3;
 
     sensitivity : float = 1;
 
@@ -72,20 +79,29 @@ get_up :: (camera : *Camera) -> Vector3 {
 get_rotation :: (using camera : *Camera) -> Quaternion {
     yaw_quat, pitch_quat: Quaternion;
 
-    // I am not sure why I need to invert the axis of rotation...
-    // probably because of the rotation direction and right hand rule, look into later, inverting so it works.
-
+    // Mouse deltas are positive right/down, and neutral camera forward is -Z.
+    // Right-handed +Y rotation turns -Z left; +X rotation turns it upward.
+    // Use -Y/-X so increasing yaw/pitch looks right/down instead.
+    // Negating the angles instead of the axes would give the same rotations.
+    
     set_from_axis_and_angle(*yaw_quat, 0, -1, 0, turns_to_radians(yaw));
     set_from_axis_and_angle(*pitch_quat, -1, 0, 0, turns_to_radians(pitch));
 
-    rotation := yaw_quat * pitch_quat;
+    rotation := rotation_between_vectors(Y3, world_up) * yaw_quat * pitch_quat;
 
     return rotation;
 }
 
+set_camera_look_at :: (camera: *Camera, position: Vector3, target: Vector3) {
+    camera.position = position;
+    direction := rotate(normalize(target - (position + camera.offset)), conjugate(rotation_between_vectors(Y3, camera.world_up)));
+    camera.yaw = atan2(direction.x, -direction.z) / TAU;
+    camera.pitch = -asin(clamp(direction.y, -1.0, 1.0)) / TAU;
+}
+
 get_world_to_camera_matrix :: (using camera : *Camera) -> Matrix4 {
     rotation := get_rotation(camera);
-    transform := make_translation_matrix4 (position + offset) * rotation_matrix (Matrix4, rotation);
+    transform := make_translation_matrix4(position + offset) * rotation_matrix(Matrix4, rotation);
 
     // suppose we are a camera, if I take a picture and then move to the right and take a new picture, then all objects from the first scene appear to the left of the original
     // picture. Now suppose the camera is an immovable object, if we want the same effect, then for every object in the scene we need to move it left instead of right.
@@ -103,5 +119,5 @@ get_projection_matrix :: (using camera : *Camera, window_width : int, window_hei
 
     // NOTE this matrix makes -z forward, which is bad and I want to change it later on, this explains the note of (1) 
     // if this used z forward, then we'd undo what was done @ (1) 
-    return make_projection_matrix (turns_to_radians(fov), aspect_ratio, 0.1, 1000.0);
+    return make_projection_matrix(turns_to_radians(fov), aspect_ratio, 0.1, 1000.0);
 }
