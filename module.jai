@@ -96,7 +96,8 @@ set_camera_look_at :: (camera: *Camera, position: Vector3, target: Vector3) {
     camera.position = position;
     direction := rotate(normalize(target - (position + camera.offset)), conjugate(rotation_between_vectors(Y3, camera.world_up)));
     camera.yaw = atan2(direction.x, -direction.z) / TAU;
-    camera.pitch = -asin(clamp(direction.y, -1.0, 1.0)) / TAU;
+    // atan2 retains precision at the poles, including exact orthographic axis views.
+    camera.pitch = -atan2(direction.y, length(Vector2.{direction.x, direction.z})) / TAU;
 }
 
 get_world_to_camera_matrix :: (using camera : *Camera) -> Matrix4 {
