@@ -24,7 +24,7 @@ Camera :: struct {
     
     // world up allows us to allow this camera to work in different rendering
     // systems where gravitational up is bound to a different axis.
-    world_up: Vector3 = Y3;
+    world_up: Vector3 = WORLD_UP;
 
     sensitivity : float = 1;
 
@@ -60,46 +60,50 @@ compute_new_sensitivity :: (original_sensitivity: float, original_fov: float, ne
     return original_sensitivity * (tan_half_new_fov / tan_half_original_fov);
 }
 
-// returns a normalized vector since Z3 is
+// Neutral camera axes match the world convention. Projection performs the
+// conversion to clip space; the view matrix only removes the camera pose.
 get_forward :: (camera : *Camera) -> Vector3 {
-    raw_forward := -Z3;
+    raw_forward := WORLD_FORWARD;
     return rotate(raw_forward, get_rotation(camera));
 }
 
 get_right :: (camera : *Camera) -> Vector3 {
-    raw_right := X3;
+    raw_right := WORLD_RIGHT;
     return rotate(raw_right, get_rotation(camera));
 }
 
 get_up :: (camera : *Camera) -> Vector3 {
-    raw_up := Y3;
+    raw_up := WORLD_UP;
     return rotate(raw_up, get_rotation(camera));
 }
 
 get_rotation :: (using camera : *Camera) -> Quaternion {
     yaw_quat, pitch_quat: Quaternion;
 
-    // Mouse deltas are positive right/down, and neutral camera forward is -Z.
-    // Right-handed +Y rotation turns -Z left; +X rotation turns it upward.
-    // Use -Y/-X so increasing yaw/pitch looks right/down instead.
-    // Negating the angles instead of the axes would give the same rotations.
-    
-    set_from_axis_and_angle(*yaw_quat, 0, -1, 0, turns_to_radians(yaw));
-    set_from_axis_and_angle(*pitch_quat, -1, 0, 0, turns_to_radians(pitch));
+    // Positive mouse deltas look right/down. Yaw rotates about world down;
+    // pitch rotates about the neutral camera's left axis, before yaw.
+    set_from_axis_and_angle(*yaw_quat, WORLD_DOWN.x, WORLD_DOWN.y, WORLD_DOWN.z, turns_to_radians(yaw));
+    set_from_axis_and_angle(*pitch_quat, WORLD_LEFT.x, WORLD_LEFT.y, WORLD_LEFT.z, turns_to_radians(pitch));
 
-    rotation := rotation_between_vectors(Y3, world_up) * yaw_quat * pitch_quat;
+    rotation := rotation_between_vectors(WORLD_UP, world_up) * yaw_quat * pitch_quat;
 
     return rotation;
 }
 
 set_camera_look_at :: (camera: *Camera, position: Vector3, target: Vector3) {
     camera.position = position;
-    direction := rotate(normalize(target - (position + camera.offset)), conjugate(rotation_between_vectors(Y3, camera.world_up)));
-    camera.yaw = atan2(direction.x, -direction.z) / TAU;
+    direction := rotate(normalize(target - (position + camera.offset)), conjugate(rotation_between_vectors(WORLD_UP, camera.world_up)));
+    forward := dot(direction, WORLD_FORWARD);
+    right := dot(direction, WORLD_RIGHT);
+    up := dot(direction, WORLD_UP);
+    camera.yaw = atan2(right, forward) / TAU;
     // atan2 retains precision at the poles, including exact orthographic axis views.
-    camera.pitch = -atan2(direction.y, length(Vector2.{direction.x, direction.z})) / TAU;
+    camera.pitch = -atan2(up, length(Vector2.{forward, right})) / TAU;
 }
 
+// Returns camera-local coordinates in the world axis convention, NOT the
+// legacy -Z-forward eye convention. Pair with make_world_projection_matrix
+// or make_world_orthographic_projection_matrix.
 get_world_to_camera_matrix :: (using camera : *Camera) -> Matrix4 {
     rotation := get_rotation(camera);
     transform := make_translation_matrix4(position + offset) * rotation_matrix(Matrix4, rotation);
@@ -118,7 +122,67 @@ get_world_to_camera_matrix :: (using camera : *Camera) -> Matrix4 {
 get_projection_matrix :: (using camera : *Camera, window_width : int, window_height : int) -> Matrix4 {
     aspect_ratio := window_width / cast (float) window_height;
 
-    // NOTE this matrix makes -z forward, which is bad and I want to change it later on, this explains the note of (1) 
-    // if this used z forward, then we'd undo what was done @ (1) 
-    return make_projection_matrix(turns_to_radians(fov), aspect_ratio, 0.1, 1000.0);
+    return make_world_projection_matrix(turns_to_radians(fov), aspect_ratio, 0.1, 1000.0);
+}
+
+// Input is camera-local XYZ in the world convention: +X forward, -Y right,
+// +Z up, with w = 1 for positions. Output is OpenGL clip coordinates; the GPU
+// performs the perspective divide. In particular, w_clip = x_camera.
+// FOV is vertical and in radians. Near/far are positive forward distances.
+make_world_projection_matrix :: (
+    fov_vertical: float,
+    aspect_ratio: float,
+    z_near: float,
+    z_far: float,
+    depth_range_01 := false,
+) -> Matrix4 {
+    assert(fov_vertical > 0 && fov_vertical < PI, "Vertical FOV must be between zero and pi radians");
+    assert(aspect_ratio > 0, "Aspect ratio must be positive");
+    assert(z_near > 0 && z_far > z_near, "Expected 0 < near < far");
+
+    vertical_scale := 1 / tan(fov_vertical * 0.5);
+    horizontal_scale := vertical_scale / aspect_ratio;
+    depth_scale := (z_far + z_near) / (z_far - z_near);
+    depth_offset := -2 * z_far * z_near / (z_far - z_near);
+    if depth_range_01 {
+        depth_scale = z_far / (z_far - z_near);
+        depth_offset = -z_far * z_near / (z_far - z_near);
+    }
+
+    result: Matrix4;
+    result._11 = horizontal_scale * WORLD_RIGHT.x;
+    result._12 = horizontal_scale * WORLD_RIGHT.y;
+    result._13 = horizontal_scale * WORLD_RIGHT.z;
+    result._21 = vertical_scale * WORLD_UP.x;
+    result._22 = vertical_scale * WORLD_UP.y;
+    result._23 = vertical_scale * WORLD_UP.z;
+    result._31 = depth_scale * WORLD_FORWARD.x;
+    result._32 = depth_scale * WORLD_FORWARD.y;
+    result._33 = depth_scale * WORLD_FORWARD.z;
+    result._34 = depth_offset;
+    result._41 = WORLD_FORWARD.x;
+    result._42 = WORLD_FORWARD.y;
+    result._43 = WORLD_FORWARD.z;
+    return result;
+}
+
+// Orthographic counterpart using the same camera-local convention. Left/right
+// and bottom/top measure distances along WORLD_RIGHT and WORLD_UP respectively.
+make_world_orthographic_projection_matrix :: (
+    left: float, right: float, bottom: float, top: float,
+    z_near: float, z_far: float,
+    depth_range_01 := false,
+) -> Matrix4 {
+    assert(right > left && top > bottom && z_far > z_near);
+    basis := Matrix4_Identity;
+    basis._11 = WORLD_RIGHT.x;
+    basis._12 = WORLD_RIGHT.y;
+    basis._13 = WORLD_RIGHT.z;
+    basis._21 = WORLD_UP.x;
+    basis._22 = WORLD_UP.y;
+    basis._23 = WORLD_UP.z;
+    basis._31 = -WORLD_FORWARD.x;
+    basis._32 = -WORLD_FORWARD.y;
+    basis._33 = -WORLD_FORWARD.z;
+    return orthographic_projection_matrix(left, right, bottom, top, z_near, z_far, depth_range_01 = depth_range_01) * basis;
 }
